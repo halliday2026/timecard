@@ -1,11 +1,6 @@
-const CACHE_NAME = "timecard-v2";
+const CACHE_NAME = "timecard-v3";
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(["/", "/manifest.webmanifest"]);
-    })
-  );
   self.skipWaiting();
 });
 
@@ -23,18 +18,29 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Only cache GET requests
+  // Only handle GET requests
   if (event.request.method !== "GET") return;
 
-  // Skip caching for API and auth requests
   const url = new URL(event.request.url);
+
+  // Skip API and Next.js internal requests
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/_next/")) {
     return;
   }
 
+  // Network-first: try network, fall back to cache
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((response) => {
+        // Cache a copy of successful responses
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, clone);
+        });
+        return response;
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });
