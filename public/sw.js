@@ -1,4 +1,4 @@
-const CACHE_NAME = "timecard-v1";
+const CACHE_NAME = "timecard-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
